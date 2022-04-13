@@ -1,68 +1,55 @@
 import discord
-
-TOKEN = "OTYxMjg2NDM1Mzk3"+"MzA0Mzcw.Yk2xwg.f0KoRk6E"+"g7ZUwPHjXAZci7VgTOA"
-
-SUBJECTS = ['здесь будут предметы',
-            'русск',
-            'математик',
-            'английск',
-            'информатик']
-stage = -1
-exam = ''
-subject = ''
-numb = 0
+import sys
+from sdamgia import SdamGIA
+from discord.ext import commands
+from config import settings  # словарь с параметрами запуска
+bot = commands.Bot(command_prefix=settings['prefix'])  # инциализация бота
+sdamgia = SdamGIA()
 
 
-class BotClient(discord.Client):
-    async def on_ready(self):
-        print(f'{self.user} подключился к Discord!')
-
-    async def on_message(self, message):
-        global stage
-        global exam
-        global subject
-        global numb
-        if message.author == self.user:
-            return
-        if stage == -1:
-            await message.channel.send('Привет! Нужна помощь с экзаменом?')
-            stage = 0
-            return
-        if not stage:
-            if 'да' in message.content.lower():
-                await message.channel.send('ОГЭ или ЕГЭ?')
-                stage = 1
-            elif 'нет' in message.content.lower():
-                await message.channel.send('Пока! Удачи с экзаменами!')
-                stage = -1
-            else:
-                await message.channel.send('Не понял ответа. Так да или нет?')
-            return
-        if stage == 1:
-            if "огэ" in message.content.lower():
-                exam = 'огэ'
-                await message.channel.send('Выбери предмет, с которым тебе нужна помощь.')
-                stage = 2
-            elif "егэ" in message.content.lower():
-                exam = 'егэ'
-                await message.channel.send('Выбери предмет, с которым тебе нужна помощь.')
-                stage = 2
-            else:
-                await message.channel.send('Не понял ответа. Так какой экзамен?')
-            return
-        if stage == 2:
-            if any(i in message.content.lower() for i in SUBJECTS):
-                await message.channel.send('Какое задание?')
-                subject = message.content.lower()
-                stage = 3
-            else:
-                await message.channel.send('Я пока не знаю такого предмета. Может другой?')
-            return
-        if stage == 3:
-            await message.channel.send('Пока что я не могу помочь тебе с этим заданием.')
-            stage = -1
-            return
+@bot.event
+async def on_ready():  # Event on_ready активируется когда бот готов к использованию
+    print('Bot connected successfully!')
 
 
-client = BotClient()
-client.run(TOKEN)
+@bot.command()
+async def menu(ctx):  # Создаем комманду menu
+    embed = discord.Embed(color=0xff9900, title='Помощь')  # Создание Embed - красивой менюшки
+    embed.add_field(name='Команды', value='''!menu или помощь – бот представляется и рассказывает о своих функциях
+!change_exam или смена экзамена – меняет экзамен (ОГЭ на ЕГЭ и наоборот)
+!change_subject или смена предмета – меняет предмет
+!reset_exam или сброс – забывает вид экзамена
+!quit – бот сразу прощается''', inline=True)  # Добавляем контент
+    await ctx.send(embed=embed)  # Отправка меню сообщением
+
+
+@bot.command()
+async def change_exam(ctx):
+    await ctx.send('В разработке')
+
+
+@bot.command()
+async def change_subject(ctx, word=''):
+    if len(word):
+        if word.lower() == 'русский':
+            await ctx.send(sdamgia.get_problem_by_id('rus', 1001)['condition']['text'])
+        elif word.lower() == 'математика':
+            await ctx.send(sdamgia.get_problem_by_id('math', 1001)['condition']['text'])
+        else:
+            await ctx.send('Такой предмет не найден ошибка 404')
+    else:
+        await ctx.send('Введите название предмета')
+
+
+@bot.command()
+async def reset_exam(ctx):
+    await ctx.send('В разработке')
+
+
+@bot.command()
+async def quit(ctx):  # выключение бота
+    await ctx.send('GG')
+    sys.exit()
+
+
+bot.run(settings['token'])  # Запуск бота
