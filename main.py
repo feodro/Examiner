@@ -1,9 +1,13 @@
 import discord
 import sys
 import logging
-from sdamgia import SdamGIA
+from data import db_session
+from sdamgia_mod import SdamGIA
 from discord.ext import commands
 from config import settings  # словарь с параметрами запуска
+from data.db_oge import DB_OGE
+from data.db_ege import DB_EGE
+from data.remember_check import RExam
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
@@ -12,41 +16,61 @@ handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(me
 logger.addHandler(handler)
 
 bot = commands.Bot(command_prefix=settings['prefix'])  # инициализация бота
-sdamgia = SdamGIA()
+sdamoge = SdamGIA('o')
+sdamege = SdamGIA('e')
 
-SUBJECTS = {'русский': 1,  # предметы и id советов
-            'математика': 2,
-            'информатика': 3,
-            'физика': 4,
-            'химия': 5,
-            'биология': 6,
-            'география': 7,
-            'история': 8,
-            'обществознание': 9,
-            'английский': 10}
+subjects = {'русский': 'rus',  # предметы и их id
+            'математика': 'math',
+            'информатика': 'inf',
+            'физика': 'phys',
+            'химия': 'chem',
+            'биология': 'bio',
+            'география': 'geo',
+            'история': 'hist',
+            'обществознание': 'soc',
+            'английский': 'en'}
 
 stage = -1
 exam = ''
 subject = ''
 numb = 0
+remember_exam = False
 
 
-def yesnt(message, st):  # Проверка ответа (положительный/отрицательный)
+# oge = DB_OGE()
+# ege = DB_EGE()
+# oge.sbjct = 'rus'
+# oge.prblm_id = '30485'
+# ege.sbjct = 'rus'
+# ege.prblm_id = ''
+# db_sess = db_session.create_session()
+# db_sess.add(oge)
+# db_sess.add(ege)
+# db_sess.commit()
+
+
+async def yesnt(message, st):  # Проверка ответа (положительный/отрицательный)
     if st == 0:
-        yes = 'ОГЭ или ЕГЭ?'
-        no = 'Пока! Удачи с экзаменами!'
+        yes = ['ОГЭ или ЕГЭ?'] if not remember_exam else ['Выбери предмет, с которым тебе нужна помощь.']
+        no = ['Пока! Удачи с экзаменами!']
     elif st == 4:
-        yes = 'Zadacha'
-        no = 'Тогда попробуем другой предмет?'
+        yes = [sdamoge.get_problem_by_id(subjects[subject], 393952)] if exam == 'огэ'\
+            else [sdamege.get_problem_by_id(subjects[subject], 26578)['condition']['text']]
+        no = ['Тогда попробуем другой предмет?']
     elif st == 6:
-        yes = 'Выбери предмет, с которым тебе нужна помощь.'
-        no = 'Пока! Удачи с экзаменами!'
-    if message in ['да', 'ага', 'давай', 'ок', 'хорошо', 'yes', 'yeah', '+', ]:
-        return yes, 1
-    elif message in ['нет', 'не', 'нет, спасибо', 'неа', 'не надо', 'no', '-', ]:
-        return no, -1
+        yes = ['Выбери предмет, с которым тебе нужна помощь.']
+        no = ['Пока! Удачи с экзаменами!']
+    if message.content.lower() in ['да', 'ага', 'давай', 'ок', 'хорошо', 'yes', 'yeah', '+', ]:
+        for m in yes:
+            await message.channel.send(m)
+        return 1
+    elif message.content.lower() in ['нет', 'не', 'нет, спасибо', 'неа', 'не надо', 'no', '-', ]:
+        for m in no:
+            await message.channel.send(m)
+        return -1
     else:
-        return 'Не понял ответа. Так да или нет?', 0
+        await message.channel.send('Не понял ответа. Так да или нет?')
+        return 0
 
 
 @bot.command()
@@ -56,7 +80,7 @@ async def menu(ctx):  # Создаем команду menu
 подготовке к ОГЭ и ЕГЭ.''', inline=False)
     embed.add_field(name='Команды', value='''!menu – представляюсь и рассказываю о своих функциях
 !change_exam – меняю экзамен (ОГЭ на ЕГЭ и наоборот)
-!change_subject – меняю предмет
+!change_subject {предмет} – меняю предмет
 !reset_exam – забываю вид экзамена
 !quit – сразу прощаюсь''', inline=False)  # Добавляем контент
     await ctx.send(embed=embed)  # Отправка меню сообщением
@@ -65,33 +89,38 @@ async def menu(ctx):  # Создаем команду menu
 @bot.command()
 async def change_exam(ctx):
     global exam
-    exam1 = exam
-    if exam1:
-        if exam1 == 'огэ':
+    if exam:
+        if exam == 'огэ':
             exam = 'егэ'
         else:
             exam = 'огэ'
-        await ctx.send(f'{exam1}->{exam}')
+        await ctx.send(f'Экзамен изменён на {exam}')
     else:
         await ctx.send('Бот ещё не знает экзамен')
 
 
 @bot.command()
 async def change_subject(ctx, word=''):
-    if len(word):
-        if word.lower() == 'русский':
-            await ctx.send(sdamgia.get_problem_by_id('rus', 1001)['condition']['text'])
-        elif word.lower() == 'математика':
-            await ctx.send(sdamgia.get_problem_by_id('math', 1001)['condition']['text'])
-        else:
-            await ctx.send('Такой предмет не найден')
+    global subject, stage
+    if word in subjects.keys():
+        await ctx.send(f'Предмет изменён на {word}. Какое задание?')
+        subject = word
+        stage = 3
     else:
-        await ctx.send('Вы не ввели название предмета')
+        await ctx.send('Это не предмет!')
 
 
 @bot.command()
 async def reset_exam(ctx):
-    await ctx.send('В разработке')
+    global remember_exam, exam, stage
+    if stage < 2:
+        m = f'Теперь я не помню экзамен {ctx.author.name}' \
+            if remember_exam else f'Я ещё не знаю экзамена {ctx.author.name}'
+        remember_exam = False
+        exam = ''
+        await ctx.send(m)
+    else:
+        await ctx.send('Эта команда должна была использоваться раньше. Используй !change_exam для смены экзамена.')
 
 
 @bot.command()
@@ -113,7 +142,7 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
-    global stage, exam, subject, numb
+    global stage, exam, subject, numb, remember_exam
     if str(message.content)[0] == '!':
         await bot.process_commands(message)
         return
@@ -127,10 +156,9 @@ async def on_message(message):
         stage = 0
         return
     if not stage:
-        m, a = yesnt(message.content.lower(), 0)
-        await message.channel.send(m)
+        a = await yesnt(message, 0)
         if a == 1:
-            stage = 1
+            stage = 1 if not remember_exam else 2
         elif a == -1:
             stage = -1
         return
@@ -143,10 +171,11 @@ async def on_message(message):
             await message.channel.send('Не понял ответа. Так какой экзамен?')
             return
         await message.channel.send('Выбери предмет, с которым тебе нужна помощь.')
+        remember_exam = True
         stage = 2
         return
     if stage == 2:
-        if any(i in message.content.lower() for i in SUBJECTS):
+        if any(i in message.content.lower() for i in subjects):
             await message.channel.send('Какое задание?')
             subject = message.content.lower()
             stage = 3
@@ -167,8 +196,7 @@ async def on_message(message):
             await message.channel.send('Пока что я не могу помочь тебе с этим заданием.')
         return
     if stage == 4:
-        m, a = yesnt(message.content.lower(), 4)
-        await message.channel.send(m)
+        a = await yesnt(message, 4)
         if a == 1:
             stage = 5
         elif a == -1:
@@ -184,8 +212,7 @@ async def on_message(message):
         stage = 4
         return
     if stage == 6:
-        m, a = yesnt(message.content.lower(), 6)
-        await message.channel.send(m)
+        a = await yesnt(message, 6)
         if a == 1:
             stage = 2
         elif a == -1:
@@ -193,4 +220,5 @@ async def on_message(message):
         return
 
 
-bot.run(settings['token'])  # Запуск бота
+db_session.global_init("db/problems.db")
+# bot.run(settings['token'])  # Запуск бота
