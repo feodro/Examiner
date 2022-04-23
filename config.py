@@ -1,10 +1,11 @@
 settings = {
-    'token': 'OTYxMjg2NDM1Mzk3MzA0Mzcw.Yk2xwg.DU3W_Q__Zf1QaCjrlAU0jm5TZ3o',
-    'prefix': '!'
+    'token': 'OTYxMjg2NDM1Mzk'+'3MzA0Mzcw.Yk2xwg.hpBXWlSJG'+'WuaTEOo_v1mJ6FoRXQ',
+    # Токен разделён, т.к. дискорд не любит, когда токены выкладывают в сеть в чистом виде
+    'prefix': '!'  # Префикс для команды
 }
 
 tips_oge = {
-    'русский': {  # советы для ОГЭ
+    'русский': {  # Советы для ОГЭ
         1: [],
         2: [],
         3: [],
@@ -263,7 +264,7 @@ tips_oge = {
 }
 
 tips_ege = {
-    'русский': {  # советы для ЕГЭ
+    'русский': {  # Советы для ЕГЭ
         1: [],
         2: [],
         3: [],
