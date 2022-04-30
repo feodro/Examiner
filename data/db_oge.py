@@ -8,4 +8,5 @@ class DB_OGE(SqlAlchemyBase):
     id = sqlalchemy.Column(sqlalchemy.Integer,
                            primary_key=True, autoincrement=True)
     sbjct = sqlalchemy.Column(sqlalchemy.String, nullable=True)
+    numb = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
     prblm_id = sqlalchemy.Column(sqlalchemy.String, nullable=True)

@@ -1,5 +1,4 @@
 import sqlalchemy
-from datetime import datetime
 from .db_session import SqlAlchemyBase
 
 
