@@ -356,6 +356,7 @@ async def on_message(message):
     name = f'<@{message.author.id}>'
     try:
         if stage == -1:
+            stage, exam, subject, numb = -1, '', '', 0
             await message.author.dm_channel.send(f'Привет! Нужна помощь с экзаменом, {name}?')
             stage = 0
             raise BaseException
@@ -466,5 +467,5 @@ async def on_message(message):
         return
 
 
-# global_init("db/problems.db") # Создать базу данных, после закоменнтировать
+# global_init("problems.db") # Создать базу данных, после закоменнтировать
 bot.run(settings['token'])  # Запуск бота
