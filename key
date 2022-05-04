@@ -1,10 +1,47 @@
 # Здесь запись id заданий для каждого предмета
 
+# Русский
+oge = DB_OGE()
+oge.sbjct = 'rus'  # id предмета
+oge.numb = 2  # номер задания
+oge.prblm_id = '12951/12952/12953/12954/12955'  # id заданий (если несколько, то разделены /)
+db_sess.add(oge)
+oge = DB_OGE()
+oge.sbjct = 'rus'
+oge.numb = 3
+oge.prblm_id = '12961/12962/12963/12964/12965'
+db_sess.add(oge)
+oge = DB_OGE()
+oge.sbjct = 'rus'
+oge.numb = 4
+oge.prblm_id = '12971/12972/12973/12974/12975'
+db_sess.add(oge)
+oge = DB_OGE()
+oge.sbjct = 'rus'
+oge.numb = 5
+oge.prblm_id = '13113/13114/13115/13116/13117'
+db_sess.add(oge)
+oge = DB_OGE()
+oge.sbjct = 'rus'
+oge.numb = 6
+oge.prblm_id = '12981/12984/12987'
+db_sess.add(oge)
+oge = DB_OGE()
+oge.sbjct = 'rus'
+oge.numb = 7
+oge.prblm_id = '12982/12985/12988'
+db_sess.add(oge)
+oge = DB_OGE()
+oge.sbjct = 'rus'
+oge.numb = 8
+oge.prblm_id = '12983/12986/12989'
+db_sess.add(oge)
+
 # Математика
 oge = DB_OGE()
-oge.sbjct = 'math'  # id предмета
-oge.numb = 6  # номер задания
-oge.prblm_id = '314264/314127/58/110/337273/337509/203747/311395'  # id заданий (если несколько, то разделены /)
+oge.sbjct = 'math'
+oge.numb = 6
+oge.prblm_id = '314264/314127/58/110/337273/337509/203747/311395'
 db_sess.add(oge)
 
 # Информатика
@@ -57,30 +94,5 @@ oge = DB_OGE()
 oge.sbjct = 'inf'
 oge.numb = 10
 oge.prblm_id = '10323/10324/10325/10326/10327'
-db_sess.add(oge)
-oge = DB_OGE()
-oge.sbjct = 'inf'
-oge.numb = 11
-oge.prblm_id = '10503'
-db_sess.add(oge)
-oge = DB_OGE()
-oge.sbjct = 'inf'
-oge.numb = 12
-oge.prblm_id = '10504'
-db_sess.add(oge)
-oge = DB_OGE()
-oge.sbjct = 'inf'
-oge.numb = 13
-oge.prblm_id = '10581'
-db_sess.add(oge)
-oge = DB_OGE()
-oge.sbjct = 'inf'
-oge.numb = 14
-oge.prblm_id = '10566'
-db_sess.add(oge)
-oge = DB_OGE()
-oge.sbjct = 'inf'
-oge.numb = 15
-oge.prblm_id = '20'
 db_sess.add(oge)
 db_sess.commit()
