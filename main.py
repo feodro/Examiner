@@ -60,7 +60,10 @@ async def yesnt(message, name, remember=False):  # Проверка ответа
         no = [f'Пока, {name}! Удачи с экзаменами!']
     elif st == 4:
         ExD, ExS = (DB_OGE, sdamoge) if exam == 'огэ' else (DB_EGE, sdamege)
-        id = db_sess.query(ExD.prblm_id).filter(ExD.sbjct == subjects[subject], ExD.numb == numb).first()[0]
+        try:
+            id = db_sess.query(ExD.prblm_id).filter(ExD.sbjct == subjects[subject], ExD.numb == numb).first()[0]
+        except:
+            id = ''
         if id:
             id = choice(id.split('/'))
             prblm = ExS.get_problem_by_id(subjects[subject], id)['condition']
