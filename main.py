@@ -121,6 +121,8 @@ async def menu(ctx):  # Создаем команду menu
 !change_exam – меняю экзамен (ОГЭ на ЕГЭ и наоборот)
 !change_subject {предмет} – меняю предмет
 !reset_exam – забываю вид экзамена
+!stats - показываю твою статистику правильности ответов
+!reset_stats - забываю твою статистику
 !quit – сразу прощаюсь''', inline=False)  # Добавляем контент
     await ctx.send(embed=embed)  # Отправка меню сообщением
 
@@ -200,16 +202,14 @@ async def quit(ctx):  # Бот мгновенно прощается
         All[ctx.author][0] = -1
 
 
-# Работа Фёдора
-# ===================
-# @bot.command(name='поиск')
+# @bot.command()
 # async def search(ctx, id):  # поиск задания по id
-#     global subject
+#     global All
 #     try:
-#         #  subject = str(get_subject(ctx.message.author.id))
-#         #  print(subject)
-#         xz = sdamgia.get_problem_by_id(subject, id)
-#         embed = discord.Embed(color=00000000, title=subject)  # Создание Embed
+#         _, exam, subject, _ = All[ctx.author]
+#         ex = sdamoge if exam == 'огэ' else sdamege
+#         xz = ex.get_problem_by_id(subject, id)
+#         embed = discord.Embed(color=0x45e0ce, title=subject)  # Создание Embed
 #         embed.add_field(name=f'''Номер задания: {xz['topic']}''', value=xz['condition']['text'], inline=False)
 #         await ctx.send(embed=embed)  # Отправка меню сообщением
 #     except:
@@ -227,7 +227,7 @@ async def quit(ctx):  # Бот мгновенно прощается
 #             await ctx.send('Тест сгенерирован')
 #             # сохранение инфы в бд
 #     except Exception:
-#         await ctx.send('Неизвестная ошибка')
+#         await ctx.send('Ошибка')
 #     embed = discord.Embed(color=00000000, title='Задания')  # Создание Embed - красивой менюшки
 #     await ctx.send('Отправка сообщения')
 #     xz = sdamgia.get_problem_by_id(subject, tasks[stage])
@@ -235,20 +235,6 @@ async def quit(ctx):  # Бот мгновенно прощается
 #     if xz['condition']['images']:
 #         embed.add_field(name=f'''Рисунок к заданию: {xz['topic']}''', value=str(xz['condition']['images']))
 #     await ctx.send(embed=embed)
-#
-#
-# @bot.command(name='следующее')
-# async def farther(ctx):
-#     global stage
-#     stage += 1
-#     await test(ctx)
-#
-#
-# @bot.command(name='предыдущее')
-# async def previous(ctx):
-#     global stage
-#     stage -= 1
-#     await test(ctx)
 #
 #
 # @bot.command(name='задание')
@@ -300,29 +286,6 @@ async def quit(ctx):  # Бот мгновенно прощается
 #     embed = discord.Embed(color=00000000, title='Помощь')  # Создание Embed - красивой менюшки
 #     embed.set_image(url='https://ege.sdamgia.ru/formula/svg/c1/c1bfad09ee23244b2f082cf11d7cc86a.svg')
 #     await ctx.send(embed=embed)  # Отправка меню сообщением
-#
-#
-# async def save_type_exam(name, id):
-#     import sqlite3
-#     sqlite_connection = sqlite3.connect('data.db')
-#     cursor = sqlite_connection.cursor()
-#     exam = cursor.execute(f"""INSERT INTO users
-#                       (exam)
-#                       VALUES
-#                       ('{name}') WHERE id = '{id}'""").fetchone()
-#     sqlite_connection.commit()
-#     cursor.close()
-#
-#
-# async def get_subject(id):
-#     global subject
-#     #  import sqlite3
-#     #  con = sqlite3.connect('data.db')
-#     #  cur = con.cursor()
-#     #  subject = cur.execute(f'''SELECT subject FROM users WHERE id = '{id}')''').fetchone()
-#     #  cur.close()
-#     return subject
-# ===================
 
 
 @bot.event
