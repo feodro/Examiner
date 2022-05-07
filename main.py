@@ -15,7 +15,7 @@ from random import choice
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
 
-from config import settings, tips_oge, tips_ege  # словари с параметрами запуска и советами
+from config import settings, tips_oge, tips_ege, part_C  # словари с параметрами запуска и советами
 
 from data.db_oge import DB_OGE
 from data.db_ege import DB_EGE
@@ -31,7 +31,7 @@ logger.addHandler(handler)
 bot = commands.Bot(command_prefix=settings['prefix'])  # инициализация бота
 sdamoge = SdamGIA('o')  # Инициализации sdamgia-api
 sdamege = SdamGIA('e')
-engine = create_engine("sqlite:///db/problems.db?check_same_thread=False")  # Инициализация сессии БД
+engine = create_engine("sqlite:///problems.db?check_same_thread=False")  # Инициализация сессии БД
 db_sess = Session(bind=engine)
 
 subjects = {'русский': 'rus',  # предметы и их id
@@ -56,35 +56,55 @@ async def yesnt(message, name, remember=False):  # Проверка ответа
     if st == 0:
         yes = [f'ОГЭ или ЕГЭ, {name}?'] if not remember else \
             [f'Насколько я помню, твой экзамен - {check_RE(str(message.author))[1]}.',
-             f'Выбери предмет, с которым тебе нужна помощь, {name}.']
-        no = [f'Пока, {name}! Удачи с экзаменами!']
+             f'Выбери предмет, с которым тебе нужна помощь, {name}.',
+             'Выбирай из перечня:',
+             ' - Русский',
+             ' - Математика',
+             ' - Информатика',
+             ' - Обществознание',
+             ' - Английский',
+             ' - Биология',
+             ' - География']
+        no = [f'Тогда пока, {name}! Удачи с экзаменами!']
     elif st == 4:
         ExD, ExS = (DB_OGE, sdamoge) if exam == 'огэ' else (DB_EGE, sdamege)
         try:
             id = db_sess.query(ExD.prblm_id).filter(ExD.sbjct == subjects[subject], ExD.numb == numb).first()[0]
         except:
             id = ''
+        ex = 'o' if exam == 'огэ' else 'e'
+        can = True
         if id:
             id = choice(id.split('/'))
-            prblm = ExS.get_problem_by_id(subjects[subject], id)['condition']
-            yes = [prblm['text']]
+            if numb in part_C[subject]:
+                can = False
+                yes = ['Пока что я не смогу дать тебе пример для этого задания самостоятельно.'
+                   f' Можешь решить его здесь: {ExS.get_problem_by_id(subjects[subject], id)["url"]}',
+                   f'Попробуем другой номер, {name}?']
+            else:
+                prblm = ExS.get_problem_by_id(subjects[subject], id)
+                yes = [prblm['condition']['text']]
         else:
-            ex = 'o' if exam == 'огэ' else 'e'
+            can = False
             yes = ['Пока что я не смогу дать тебе пример для этого задания самостоятельно.'
                    f' Можешь решить его здесь: https://{subjects[subject]}-{ex}ge.sdamgia.ru/',
-                   f'Попробуем другой предмет, {name}?']
-        no = [f'Тогда попробуем другой предмет, {name}?']
+                   f'Попробуем другой номер, {name}?']
+        no = [f'Попробуем другой номер, {name}?']
     elif st == 6:
+        yes = [f'Какое задание, {name}?']
+        no = [f'Тогда попробуем другой предмет, {name}?']
+    elif st == 7:
         yes = [f'Выбери предмет, с которым тебе нужна помощь, {name}.']
-        no = [f'Пока, {name}! Удачи с экзаменами!']
+        no = [f'Тогда пока, {name}! Удачи с экзаменами!']
     if message.content.lower() in ['да', 'ага', 'давай', 'ок', 'хорошо', 'yes', 'yeah', '+', ]:
         for m in yes:
             await message.channel.send(m)
         if st == 4:
-            if not id:
+            if not can:
                 return -1
-            for im in prblm['images']:
+            for im in prblm['condition']['images']:
                 await message.channel.send(file=discord.File(svg_to_png(im)))
+            await message.channel.send(prblm['url'])
             return id
         return 1
     elif message.content.lower() in ['нет', 'не', 'нет, спасибо', 'неа', 'не надо', 'no', '-', ]:
@@ -151,13 +171,14 @@ async def change_exam(ctx):
 @bot.command()
 async def change_subject(ctx, word=''):
     global All
-    stage, _, subject, _ = All.get(ctx.author, ['', 0, 0, 0])
+    stage, exam, subject, _ = All.get(ctx.author, ['', 0, 0, 0])
     if not word:
         await ctx.send(f'Ты не указал предмет, <@{ctx.author.id}>')
     elif not subject:
         await ctx.send(f'Я не знаю твой изначальный предмет, <@{ctx.author.id}>.')
     elif word in subjects.keys():
-        await ctx.send(f'Предмет изменён на {word}. Какое задание, <@{ctx.author.id}>?')
+        tips = list(tips_oge[word].keys()) if exam == 'огэ' else list(tips_ege[word].keys())
+        await ctx.send(f'Предмет изменён на {word}. Какое задание, <@{ctx.author.id}> ({tips[0]}-{tips[-1]})?')
         All[ctx.author][0], All[ctx.author][2] = 3, word
     else:
         await ctx.send(f'Это не предмет, <@{ctx.author.id}>!')
@@ -166,7 +187,7 @@ async def change_subject(ctx, word=''):
 @bot.command()
 async def reset_exam(ctx):
     stage, exam, _, _ = All.get(ctx.author, ['e', '', '', ''])
-    if stage == 'e' or not any(check_RE(str(ctx.author))):
+    if not any(check_RE(str(ctx.author))):
         await ctx.send(f'Я ещё не знаю твоего экзамена, <@{ctx.author.id}>')
     elif stage > 1:
         await ctx.send(f'Эта команда должна была использоваться раньше, <@{ctx.author.id}>. '
@@ -205,92 +226,6 @@ async def quit(ctx):  # Бот мгновенно прощается
         All[ctx.author][0] = -1
 
 
-# @bot.command()
-# async def search(ctx, id):  # поиск задания по id
-#     global All
-#     try:
-#         _, exam, subject, _ = All[ctx.author]
-#         ex = sdamoge if exam == 'огэ' else sdamege
-#         xz = ex.get_problem_by_id(subject, id)
-#         embed = discord.Embed(color=0x45e0ce, title=subject)  # Создание Embed
-#         embed.add_field(name=f'''Номер задания: {xz['topic']}''', value=xz['condition']['text'], inline=False)
-#         await ctx.send(embed=embed)  # Отправка меню сообщением
-#     except:
-#         await ctx.send(f'Номер с id:{id} не найден')
-#
-#
-# @bot.command()
-# async def test(ctx):
-#     global tasks, stage, subject
-#     #  subject = str(get_subject(ctx.message.author.id))
-#     try:
-#         if not len(tasks):
-#             await ctx.send('Идёт генерация теста')
-#             tasks = sdamgia.get_test_by_id(subject, sdamgia.generate_test(subject))
-#             await ctx.send('Тест сгенерирован')
-#             # сохранение инфы в бд
-#     except Exception:
-#         await ctx.send('Ошибка')
-#     embed = discord.Embed(color=00000000, title='Задания')  # Создание Embed - красивой менюшки
-#     await ctx.send('Отправка сообщения')
-#     xz = sdamgia.get_problem_by_id(subject, tasks[stage])
-#     embed.add_field(name=f'''Задание: {xz['topic']}''', value=xz['condition']['text'], inline=False)
-#     if xz['condition']['images']:
-#         embed.add_field(name=f'''Рисунок к заданию: {xz['topic']}''', value=str(xz['condition']['images']))
-#     await ctx.send(embed=embed)
-#
-#
-# @bot.command(name='задание')
-# async def choice(ctx, number=1):
-#     global stage
-#     stage = number - 1
-#     await test(ctx)
-#
-#
-# @bot.command(name='начать')
-# async def test_begin(ctx):
-#     import sqlite3
-#     sqlite_connection = sqlite3.connect('data.db')
-#     cursor = sqlite_connection.cursor()
-#     sqlite_insert_query = f"""INSERT INTO users
-#                           (user_id, exam, subject,)
-#                           VALUES
-#                           ('{ctx.message.author.id}', 'oge', 'math');"""
-#     count = cursor.execute(sqlite_insert_query)
-#     sqlite_connection.commit()
-#     cursor.close()
-#     user = await bot.fetch_user(user_id=ctx.message.author.id)
-#     await user.send('Чтобы начать экзамен введите !test')
-#
-#
-# @bot.command(name='ответ')
-# async def show_answer(ctx):
-#     global tasks, stage, subject
-#     #  subject = str(get_subject(ctx.message.author.id))
-#     embed = discord.Embed(color=00000000, title='Ответ')
-#     xz = sdamgia.get_problem_by_id(subject, tasks[stage])
-#     embed.add_field(name=f'''Ответ к заданию: {xz['topic']}''', value=xz['solution']['text'], inline=False)
-#     await ctx.send(embed=embed)
-#
-#
-# @bot.command()
-# async def xz(ctx):
-#     import io
-#     import aiohttp
-#
-#     async with aiohttp.ClientSession() as session:
-#         async with session.get('https://ege.sdamgia.ru/formula/svg/c1/c1bfad09ee23244b2f082cf11d7cc86a.svg') as resp:
-#             if resp.status != 200:
-#                 return await ctx.send('Не получилось взять изображение')
-#             data = io.BytesIO(await resp.read())
-#             picture = discord.File(data)
-#             await ctx.send(file=picture)
-#
-#     embed = discord.Embed(color=00000000, title='Помощь')  # Создание Embed - красивой менюшки
-#     embed.set_image(url='https://ege.sdamgia.ru/formula/svg/c1/c1bfad09ee23244b2f082cf11d7cc86a.svg')
-#     await ctx.send(embed=embed)  # Отправка меню сообщением
-
-
 @bot.event
 async def on_ready():
     logger.info(f'{bot.user} подключился к Discord!')
@@ -308,13 +243,13 @@ async def on_message(message):
     if str(message.content)[0] == '!':
         await bot.process_commands(message)
         return
+    if message.author == bot.user:
+        return
     if 'Direct Message with ' not in str(message.channel):
-        if '<@961286435397304370>' in message.content and (All.get(message.author, 'ee')[0] in (-1, 'e')):
+        if ('<@961286435397304370>' in message.content or any([f'<@&{role.id}>' in message.content for role in message.guild.get_member(961286435397304370).roles])) and (All.get(message.author, 'ee')[0] in (-1, 'e')):
             await message.author.create_dm()
         else:
             return
-    if message.author == bot.user:
-        return
     if message.author not in All.keys():
         All[message.author] = [-1, '', '', 0]
     All[message.author][1] = check_RE(str(message.author))[1]
@@ -357,12 +292,21 @@ async def on_message(message):
             db_sess.add(remember_exam)
             db_sess.commit()
             await message.channel.send(f'Выбери предмет, с которым тебе нужна помощь, {name}.')
+            await message.channel.send('Выбирай из перечня:')
+            await message.channel.send(' - Русский')
+            await message.channel.send(' - Математика')
+            await message.channel.send(' - Информатика')
+            await message.channel.send(' - Обществознание')
+            await message.channel.send(' - Английский')
+            await message.channel.send(' - Биология')
+            await message.channel.send(' - География')
             stage = 2
             raise BaseException
         if stage == 2:
-            if any(i in message.content.lower() for i in subjects):
-                await message.channel.send(f'Какое задание, {name}?')
+            if message.content.lower() in subjects:
                 subject = message.content.lower()
+                tips = list(tips_oge[subject].keys()) if exam == 'огэ' else list(tips_ege[subject].keys())
+                await message.channel.send(f'Какое задание, {name} ({tips[0]}-{tips[-1]})?')
                 stage = 3
             else:
                 await message.channel.send(f'Я пока не знаю такого предмета, {name}. Может другой?')
@@ -399,7 +343,7 @@ async def on_message(message):
         if stage == 5:
             ExD, ExS = (DB_OGE, sdamoge) if exam == 'огэ' else (DB_EGE, sdamege)
             prblm = ExS.get_problem_by_id(subjects[subject], id)
-            ansv = prblm['answer']
+            ansv = prblm['answer'].lower()
             sol = prblm['solution']['text']
             img = prblm['solution']['images']
             if not db_sess.query(Stats).filter(Stats.name == str(message.author)).first():
@@ -409,12 +353,13 @@ async def on_message(message):
                 stat.false = 0
                 db_sess.add(stat)
                 db_sess.commit()
-            if message.content.lower() == ansv:
+            if message.content.lower() in ansv.split('|'):
                 await message.channel.send(f'Всё верно, {name}! Это {ansv}.')
                 db_sess.query(Stats).filter(Stats.name == str(message.author)).first().true += 1
             else:
                 await message.channel.send(f'Неверно, {name}! Правильный ответ – {ansv}.')
                 db_sess.query(Stats).filter(Stats.name == str(message.author)).first().false += 1
+            db_sess.commit()
             await message.channel.send(sol)
             for im in img:
                 await message.channel.send(file=discord.File(svg_to_png(im)))
@@ -422,6 +367,13 @@ async def on_message(message):
             stage = 4
             raise BaseException
         if stage == 6:
+            a = await yesnt(message, name)
+            if a == 1:
+                stage = 3
+            elif a == -1:
+                stage = 7
+            raise BaseException
+        if stage == 7:
             a = await yesnt(message, name)
             if a == 1:
                 stage = 2
@@ -433,5 +385,5 @@ async def on_message(message):
         return
 
 
-# global_init("problems.db") # Создать базу данных, после закоменнтировать
+global_init("problems.db")  # Создать базу данных, после закоменнтировать
 bot.run(settings['token'])  # Запуск бота

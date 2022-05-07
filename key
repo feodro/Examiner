@@ -2,6 +2,11 @@
 
 # Русский
 oge = DB_OGE()
+oge.sbjct = 'rus'
+oge.numb = 1
+oge.prblm_id = '685/686/687/688/689'
+db_sess.add(oge)
+oge = DB_OGE()
 oge.sbjct = 'rus'  # id предмета
 oge.numb = 2  # номер задания
 oge.prblm_id = '12951/12952/12953/12954/12955'  # id заданий (если несколько, то разделены /)
@@ -35,6 +40,11 @@ oge = DB_OGE()
 oge.sbjct = 'rus'
 oge.numb = 8
 oge.prblm_id = '12983/12986/12989'
+db_sess.add(oge)
+oge = DB_OGE()
+oge.sbjct = 'rus'
+oge.numb = 9
+oge.prblm_id = '3259/3260/3262/3265'
 db_sess.add(oge)
 
 # Математика
@@ -94,5 +104,30 @@ oge = DB_OGE()
 oge.sbjct = 'inf'
 oge.numb = 10
 oge.prblm_id = '10323/10324/10325/10326/10327'
+db_sess.add(oge)
+oge = DB_OGE()
+oge.sbjct = 'inf'
+oge.numb = 11
+oge.prblm_id = '10503'
+db_sess.add(oge)
+oge = DB_OGE()
+oge.sbjct = 'inf'
+oge.numb = 12
+oge.prblm_id = '10504'
+db_sess.add(oge)
+oge = DB_OGE()
+oge.sbjct = 'inf'
+oge.numb = 13
+oge.prblm_id = '10581'
+db_sess.add(oge)
+oge = DB_OGE()
+oge.sbjct = 'inf'
+oge.numb = 14
+oge.prblm_id = '10566'
+db_sess.add(oge)
+oge = DB_OGE()
+oge.sbjct = 'inf'
+oge.numb = 15
+oge.prblm_id = '20'
 db_sess.add(oge)
 db_sess.commit()
