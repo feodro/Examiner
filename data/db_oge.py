@@ -1,5 +1,6 @@
+# Столбец бд, в котором хранятся id задач для огэ
 import sqlalchemy
-from .db_session import SqlAlchemyBase
+from db_session import SqlAlchemyBase
 
 
 class DB_OGE(SqlAlchemyBase):

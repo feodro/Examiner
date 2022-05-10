@@ -1,11 +1,10 @@
 import discord
-import sys
 import logging
 import requests
 
 from data.db_session import global_init
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 
 from sdamgia_mod import SdamGIA
 from discord.ext import commands
@@ -15,20 +14,20 @@ from random import choice
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
 
-from config import settings, tips_oge, tips_ege, part_C  # словари с параметрами запуска и советами
+from config import token, tips_oge, tips_ege, part_C  # словари с параметрами запуска и советами
 
 from data.db_oge import DB_OGE
 from data.db_ege import DB_EGE
 from data.remember_check import RExam
 from data.stats import Stats
 
-logger = logging.getLogger('discord')
+logger = logging.getLogger('discord')  # Настройка логгера
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 
-bot = commands.Bot(command_prefix=settings['prefix'])  # инициализация бота
+bot = commands.Bot(command_prefix='!')  # Инициализация бота
 sdamoge = SdamGIA('o')  # Инициализации sdamgia-api
 sdamege = SdamGIA('e')
 engine = create_engine("sqlite:///problems.db?check_same_thread=False")  # Инициализация сессии БД
@@ -45,10 +44,7 @@ subjects = {'русский': 'rus',  # предметы и их id
             'обществознание': 'soc',
             'английский': 'en'}
 
-All = {}
-
-
-# вставить сюда key, после создания базы данных
+All = {}  # Здесь хранятся экзамен, предмет и номер задания каждого пользователя
 
 
 async def yesnt(message, name, remember=False):  # Проверка ответа (положительный/отрицательный)
@@ -79,8 +75,8 @@ async def yesnt(message, name, remember=False):  # Проверка ответа
             if numb in part_C[subject]:
                 can = False
                 yes = ['Пока что я не смогу дать тебе пример для этого задания самостоятельно.'
-                   f' Можешь решить его здесь: {ExS.get_problem_by_id(subjects[subject], id)["url"]}',
-                   f'Попробуем другой номер, {name}?']
+                       f' Можешь решить его здесь: {ExS.get_problem_by_id(subjects[subject], id)["url"]}',
+                       f'Попробуем другой номер, {name}?']
             else:
                 prblm = ExS.get_problem_by_id(subjects[subject], id)
                 yes = [prblm['condition']['text']]
@@ -116,7 +112,7 @@ async def yesnt(message, name, remember=False):  # Проверка ответа
         return 0
 
 
-def check_RE(user):
+def check_RE(user):  # Проверка, есть ли пользователь в столбце remember_exam бд и вывод информации о нём
     try:
         memb = db_sess.query(RExam).filter(RExam.name == user).first()
         return memb.name, memb.exam, memb.date
@@ -124,19 +120,20 @@ def check_RE(user):
         return '', '', ''
 
 
-def svg_to_png(img):
+def svg_to_png(img):  # Перевод картинки из формата svg (такой возвращает сайт) в png (такой нужен discord.py)
     p = requests.get(img)
-    rt = 'data/temp_images/'
-    nm = 'img.svg'
-    out = open(rt + nm, 'wb')
+    rt = 'data/temp_images/img'
+    svg = rt + '.svg'
+    png = rt + '.png'
+    out = open(svg, 'wb')
     out.write(p.content)
     out.close()
-    renderPM.drawToFile(svg2rlg(rt + nm), rt + f'img.png', fmt='PNG')
-    return rt + f'img.png'
+    renderPM.drawToFile(svg2rlg(svg), png, fmt='PNG')
+    return png
 
 
 @bot.command()
-async def menu(ctx):  # Создаем команду menu
+async def menu(ctx):  # Вывод пользователю основной информации о боте и команд
     embed = discord.Embed(color=0x45e0ce)  # Создание Embed - красивого меню
     embed.add_field(name='Обо мне', value='''Я - Экзаменатор - дискорд-бот, предназначенный для помощи ученику в 
 подготовке к ОГЭ и ЕГЭ.''', inline=False)
@@ -151,7 +148,7 @@ async def menu(ctx):  # Создаем команду menu
 
 
 @bot.command()
-async def change_exam(ctx):
+async def change_exam(ctx):  # Смена экзамена пользователя (с огэ на егэ и наоборот)
     global All
     exam = All.get(ctx.author, ['e', ''])[1]
     if exam:
@@ -169,7 +166,7 @@ async def change_exam(ctx):
 
 
 @bot.command()
-async def change_subject(ctx, word=''):
+async def change_subject(ctx, word=''):  # Смена предмета на введённый пользователем
     global All
     stage, exam, subject, _ = All.get(ctx.author, ['', 0, 0, 0])
     if not word:
@@ -185,7 +182,7 @@ async def change_subject(ctx, word=''):
 
 
 @bot.command()
-async def reset_exam(ctx):
+async def reset_exam(ctx):  #
     stage, exam, _, _ = All.get(ctx.author, ['e', '', '', ''])
     if not any(check_RE(str(ctx.author))):
         await ctx.send(f'Я ещё не знаю твоего экзамена, <@{ctx.author.id}>')
@@ -199,7 +196,7 @@ async def reset_exam(ctx):
 
 
 @bot.command()
-async def stats(ctx):
+async def stats(ctx):  #
     stat = db_sess.query(Stats).filter(Stats.name == str(ctx.author)).first()
     if stat:
         await ctx.send(f'У тебя {stat.true} правильных и {stat.false} неправильных ответов, <@{ctx.author.id}>')
@@ -208,7 +205,7 @@ async def stats(ctx):
 
 
 @bot.command()
-async def reset_stats(ctx):
+async def reset_stats(ctx):  #
     if not db_sess.query(Stats).filter(Stats.name == str(ctx.author)).first():
         await ctx.send(f'Я ещё не знаю твоей статистики, <@{ctx.author.id}>')
     else:
@@ -227,7 +224,7 @@ async def quit(ctx):  # Бот мгновенно прощается
 
 
 @bot.event
-async def on_ready():
+async def on_ready():  # При подключении бот выводит, на каких серверах он есть
     logger.info(f'{bot.user} подключился к Discord!')
     serv = f'{bot.user} может помочь с подготовкой к экзаменам на ' \
            f'серверах: ' if bot.guilds else f'{bot.user} не сможет помочь с подготовкой к экзаменам на серверах.'
@@ -239,25 +236,28 @@ async def on_ready():
 @bot.event
 async def on_message(message):
     global All
-    logger.info(f'{message.author.name} говорит: {message.content}')
-    if str(message.content)[0] == '!':
+    logger.info(f'{message.author.name} говорит: {message.content}')  # Вывод в логгер сообщения и автора
+    if str(message.content)[0] == '!':  # Если команда
         await bot.process_commands(message)
         return
-    if message.author == bot.user:
+    if message.author == bot.user:  # Чтобы бот не отвечал на свои же сообщения
         return
     if 'Direct Message with ' not in str(message.channel):
-        if ('<@961286435397304370>' in message.content or any([f'<@&{role.id}>' in message.content for role in message.guild.get_member(961286435397304370).roles])) and (All.get(message.author, 'ee')[0] in (-1, 'e')):
+        # Проверка, был ли бот или его роль упомянуты на сервере
+        if ('<@961286435397304370>' in message.content or any([f'<@&{role.id}>' in message.content for role in
+                                                               message.guild.get_member(
+                                                                       961286435397304370).roles])) and (
+                All.get(message.author, 'ee')[0] in (-1, 'e')):
             await message.author.create_dm()
         else:
             return
-    if message.author not in All.keys():
+    if message.author not in All.keys():  # Если пользователь только закончил или не начинал общаться с ботом
         All[message.author] = [-1, '', '', 0]
-    All[message.author][1] = check_RE(str(message.author))[1]
+    All[message.author][1] = check_RE(str(message.author))[1]  # Если бот "помнит" экзамен
     stage, exam, subject, numb = All[message.author]
-    name = f'<@{message.author.id}>'
+    name = f'<@{message.author.id}>'  # Пинг пользователя
     try:
         if stage == -1:
-            stage, exam, subject, numb = -1, '', '', 0
             await message.author.dm_channel.send(f'Привет! Нужна помощь с экзаменом, {name}?')
             stage = 0
             raise BaseException
@@ -378,6 +378,7 @@ async def on_message(message):
             if a == 1:
                 stage = 2
             elif a == -1:
+                del All[message.author]
                 stage = -1
             raise BaseException
     except BaseException:
@@ -386,4 +387,4 @@ async def on_message(message):
 
 
 global_init("problems.db")  # Создать базу данных, после закоменнтировать
-bot.run(settings['token'])  # Запуск бота
+bot.run(token)  # Запуск бота

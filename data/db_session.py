@@ -1,3 +1,4 @@
+# Создание базы данных
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 import sqlalchemy.ext.declarative as dec

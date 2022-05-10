@@ -1,5 +1,6 @@
+# Столбец бд, в котором хранится количество правильных и неправильных ответов пользователя
 import sqlalchemy
-from .db_session import SqlAlchemyBase
+from db_session import SqlAlchemyBase
 
 
 class Stats(SqlAlchemyBase):

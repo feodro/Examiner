@@ -1,5 +1,6 @@
+# Столбец бд, в котором хранятся экзамен и дата последнего взаимодействия пользователя с ботом
 import sqlalchemy
-from .db_session import SqlAlchemyBase
+from db_session import SqlAlchemyBase
 
 
 class RExam(SqlAlchemyBase):
